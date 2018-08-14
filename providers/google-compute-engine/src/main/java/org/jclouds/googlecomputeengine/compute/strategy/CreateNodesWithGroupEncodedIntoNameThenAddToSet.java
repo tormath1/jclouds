@@ -19,9 +19,6 @@ package org.jclouds.googlecomputeengine.compute.strategy;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableList.of;
-import static org.jclouds.domain.LocationScope.ZONE;
-import static org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName.fromRegionAndName;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -29,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.net.URI;
 
 import javax.annotation.Resource;
 import javax.inject.Inject;
@@ -45,7 +43,6 @@ import org.jclouds.compute.strategy.CustomizeNodeAndAddToGoodMapOrPutExceptionIn
 import org.jclouds.compute.strategy.ListNodesStrategy;
 import org.jclouds.domain.Location;
 import org.jclouds.googlecomputeengine.GoogleComputeEngineApi;
-import org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName;
 import org.jclouds.googlecomputeengine.compute.functions.FirewallTagNamingConvention;
 import org.jclouds.googlecomputeengine.compute.functions.Resources;
 import org.jclouds.googlecomputeengine.compute.options.GoogleComputeEngineTemplateOptions;
@@ -84,7 +81,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
    private final Predicate<AtomicReference<Operation>> operationDone;
    private final FirewallTagNamingConvention.Factory firewallTagNamingConvention;
    private final SshKeyPairGenerator keyGenerator;
-   private final LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap;
+   private final LoadingCache<URI, Optional<Subnetwork>> subnetworksMap;
 
    @Resource
    @Named(ComputeServiceConstants.COMPUTE_LOGGER)
@@ -99,7 +96,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
          CustomizeNodeAndAddToGoodMapOrPutExceptionIntoBadMap.Factory customizeNodeAndAddToGoodMapOrPutExceptionIntoBadMapFactory,
          GoogleComputeEngineApi api, Resources resources, Predicate<AtomicReference<Operation>> operationDone,
          FirewallTagNamingConvention.Factory firewallTagNamingConvention, SshKeyPairGenerator keyGenerator,
-         LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap) {
+         LoadingCache<URI, Optional<Subnetwork>> subnetworksMap) {
       super(addNodeWithGroupStrategy, listNodesStrategy, namingConvention, userExecutor,
             customizeNodeAndAddToGoodMapOrPutExceptionIntoBadMapFactory);
       this.api = api;
@@ -146,26 +143,29 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
     */
    private void configureNetworking(String group, GoogleComputeEngineTemplateOptions options, Location location) {
       String networkName = null;
+      String net = null;
       Network network = null;
+      Optional<Subnetwork> subnet = Optional.absent();
 
       if (options.getNetworks().isEmpty()) {
          networkName = DEFAULT_NETWORK_NAME;
       } else {
          Iterator<String> iterator = options.getNetworks().iterator();
-         networkName = nameFromNetworkString(iterator.next());
+         net = iterator.next();
+         networkName = nameFromNetworkString(net);
+         subnet = subnetworksMap.getUnchecked(URI.create(net));
+         logger.debug("yala %s", URI.create(net).toString());
          checkArgument(!iterator.hasNext(),
                "Error: Please specify only one network/subnetwork in TemplateOptions when using GCE.");
       }
-
-      String region = ZONE == location.getScope() ? location.getParent().getId() : location.getId();
-      Optional<Subnetwork> subnet = subnetworksMap.getUnchecked(fromRegionAndName(region, networkName));
+      logger.debug(subnet.get().selfLink().toString());
       if (subnet.isPresent()) {
          network = resources.network(subnet.get().network());
          options.networks(ImmutableSet.of(subnet.get().selfLink().toString()));
-         logger.debug(">> attaching nodes to subnet(%s) in region(%s)", subnet.get().name(), region);
+         logger.debug(">> attaching nodes to subnet(%s)", subnet.get().name());
       } else {
-         logger.warn(">> subnet(%s) was not found in region(%s). Trying to find a matching legacy network...",
-               networkName, region);
+         logger.warn(">> subnet(%s) was not found. Trying to find a matching legacy network...",
+               networkName);
          network = api.networks().get(networkName);
          options.networks(ImmutableSet.of(network.selfLink().toString()));
          logger.debug(">> attaching nodes to legacy network(%s)", network.name());
@@ -174,7 +174,10 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
       checkArgument(network != null, "Error: no network with name %s was found", networkName);
 
       // Setup Firewall rules
-      getOrCreateFirewalls(options, network, subnet, firewallTagNamingConvention.get(group));
+      // this method doesn't work, because we are trying to get/create a firewall
+      // for a project X but network is in project Y
+      // need to be fixed
+      // getOrCreateFirewalls(options, network, subnet, firewallTagNamingConvention.get(group));
    }
 
    /**
