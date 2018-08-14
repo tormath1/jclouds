@@ -21,8 +21,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
 import static java.lang.String.format;
 import static org.jclouds.googlecloud.internal.ListPages.concat;
-import static org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName.fromRegionAndName;
-import static org.jclouds.googlecomputeengine.compute.strategy.CreateNodesWithGroupEncodedIntoNameThenAddToSet.nameFromNetworkString;
 import static org.jclouds.googlecomputeengine.config.GoogleComputeEngineProperties.IMAGE_PROJECTS;
 
 import java.net.URI;
@@ -44,7 +42,6 @@ import org.jclouds.domain.LocationBuilder;
 import org.jclouds.domain.LocationScope;
 import org.jclouds.domain.LoginCredentials;
 import org.jclouds.googlecomputeengine.GoogleComputeEngineApi;
-import org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName;
 import org.jclouds.googlecomputeengine.compute.functions.Resources;
 import org.jclouds.googlecomputeengine.compute.options.GoogleComputeEngineTemplateOptions;
 import org.jclouds.googlecomputeengine.domain.AttachDisk;
@@ -101,14 +98,14 @@ public final class GoogleComputeEngineServiceAdapter
    private final Function<Map<String, ?>, String> windowsPasswordGenerator;
    private final List<String> imageProjects;
    private final LoadingCache<URI, Optional<Image>> diskURIToImage;
-   private final LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap;
+   private final LoadingCache<URI, Optional<Subnetwork>> subnetworksMap;
 
    @Inject
    GoogleComputeEngineServiceAdapter(JustProvider justProvider, GoogleComputeEngineApi api,
          Predicate<AtomicReference<Operation>> operationDone, Predicate<AtomicReference<Instance>> instanceVisible,
          Function<Map<String, ?>, String> windowsPasswordGenerator, Resources resources,
          @Named(IMAGE_PROJECTS) String imageProjects, LoadingCache<URI, Optional<Image>> diskURIToImage,
-         LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap) {
+         LoadingCache<URI, Optional<Subnetwork>> subnetworksMap) {
       this.justProvider = justProvider;
       this.api = api;
       this.operationDone = operationDone;
@@ -137,12 +134,10 @@ public final class GoogleComputeEngineServiceAdapter
       URI subnetwork = null;
       
       if (isSubnetwork(network)) {
-         String region = template.getLocation().getParent().getId();
-         RegionAndName subnetRef = fromRegionAndName(region, nameFromNetworkString(network.toString()));
          // This must be present, since the subnet is validated and its URI
          // obtained in the CreateNodesWithGroupEncodedIntoNameThenAddToSet
          // strategy
-         Optional<Subnetwork> subnet = subnetworksMap.getUnchecked(subnetRef);
+         Optional<Subnetwork> subnet = subnetworksMap.getUnchecked(network);
          network = subnet.get().network();
          subnetwork = subnet.get().selfLink();
       }
