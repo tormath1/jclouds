@@ -17,37 +17,37 @@
 package org.jclouds.googlecomputeengine.compute.loaders;
 
 import java.util.concurrent.ExecutionException;
+import java.net.URI;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.jclouds.googlecomputeengine.GoogleComputeEngineApi;
-import org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName;
 import org.jclouds.googlecomputeengine.domain.Subnetwork;
+import org.jclouds.googlecomputeengine.compute.functions.Resources;
 
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheLoader;
 
 @Singleton
-public class SubnetworkLoader extends CacheLoader<RegionAndName, Optional<Subnetwork>> {
+public class SubnetworkLoader extends CacheLoader<URI, Optional<Subnetwork>> {
 
-   private final GoogleComputeEngineApi api;
+   private final Resources resources;
 
    @Inject
-   SubnetworkLoader(GoogleComputeEngineApi api) {
-      this.api = api;
+   SubnetworkLoader(Resources resources) {
+      this.resources = resources;
    }
 
    @Override
-   public Optional<Subnetwork> load(RegionAndName key) throws ExecutionException {
+   public Optional<Subnetwork> load(URI key) throws ExecutionException {
       try {
-         return Optional.fromNullable(api.subnetworksInRegion(key.regionId()).get(key.name()));
+         return Optional.fromNullable(resources.subnetwork(key));
       } catch (Exception ex) {
          throw new ExecutionException(message(key, ex), ex);
       }
    }
 
-   public static String message(RegionAndName key, Exception ex) {
-      return String.format("could not find subnet %s in region %s: %s", key.name(), key.regionId(), ex.getMessage());
+   public static String message(URI key, Exception ex) {
+      return String.format("could not find subnet %s : %s", key.toString(), ex.getMessage());
    }
 }
