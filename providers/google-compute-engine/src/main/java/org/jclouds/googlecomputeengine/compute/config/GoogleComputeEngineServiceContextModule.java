@@ -86,7 +86,6 @@ import org.jclouds.compute.domain.internal.TemplateBuilderImpl;
 import org.jclouds.compute.functions.NodeAndTemplateOptionsToStatement;
 import org.jclouds.compute.functions.NodeAndTemplateOptionsToStatementWithoutPublicKey;
 import org.jclouds.googlecomputeengine.compute.domain.internal.GoogleComputeEngineArbitraryCpuRamTemplateBuilderImpl;
-import org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName;
 
 public final class GoogleComputeEngineServiceContextModule
       extends ComputeServiceAdapterContextModule<Instance, MachineType, Image, Location> {
@@ -141,7 +140,7 @@ public final class GoogleComputeEngineServiceContextModule
       bind(new TypeLiteral<CacheLoader<URI, Optional<Image>>>() {
       }).to(DiskURIToImage.class);
       
-      bind(new TypeLiteral<CacheLoader<RegionAndName, Optional<Subnetwork>>>() {
+      bind(new TypeLiteral<CacheLoader<URI, Optional<Subnetwork>>>() {
       }).to(SubnetworkLoader.class);
 
       bindHttpApi(binder(), Resources.class);
@@ -215,8 +214,8 @@ public final class GoogleComputeEngineServiceContextModule
 
    @Provides
    @Singleton
-   protected LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap(
-         CacheLoader<RegionAndName, Optional<Subnetwork>> in) {
+   protected LoadingCache<URI, Optional<Subnetwork>> subnetworksMap(
+         CacheLoader<URI, Optional<Subnetwork>> in) {
       return CacheBuilder.newBuilder().build(in);
    }
 
