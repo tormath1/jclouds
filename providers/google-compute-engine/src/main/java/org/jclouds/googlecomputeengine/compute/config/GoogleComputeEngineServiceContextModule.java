@@ -55,17 +55,14 @@ import org.jclouds.googlecomputeengine.compute.functions.OrphanedGroupsFromDeadN
 import org.jclouds.googlecomputeengine.compute.functions.Resources;
 import org.jclouds.googlecomputeengine.compute.functions.ResetWindowsPassword;
 import org.jclouds.googlecomputeengine.compute.loaders.DiskURIToImage;
+import org.jclouds.googlecomputeengine.compute.loaders.FirewallLoader;
 import org.jclouds.googlecomputeengine.compute.loaders.SubnetworkLoader;
 import org.jclouds.googlecomputeengine.compute.options.GoogleComputeEngineTemplateOptions;
 import org.jclouds.googlecomputeengine.compute.predicates.AtomicInstanceVisible;
 import org.jclouds.googlecomputeengine.compute.predicates.AtomicOperationDone;
 import org.jclouds.googlecomputeengine.compute.predicates.GroupIsEmpty;
 import org.jclouds.googlecomputeengine.compute.strategy.CreateNodesWithGroupEncodedIntoNameThenAddToSet;
-import org.jclouds.googlecomputeengine.domain.Image;
-import org.jclouds.googlecomputeengine.domain.Instance;
-import org.jclouds.googlecomputeengine.domain.MachineType;
-import org.jclouds.googlecomputeengine.domain.Operation;
-import org.jclouds.googlecomputeengine.domain.Subnetwork;
+import org.jclouds.googlecomputeengine.domain.*;
 import org.jclouds.location.suppliers.ImplicitLocationSupplier;
 import org.jclouds.location.suppliers.implicit.FirstZone;
 
@@ -143,6 +140,9 @@ public final class GoogleComputeEngineServiceContextModule
       
       bind(new TypeLiteral<CacheLoader<RegionAndName, Optional<Subnetwork>>>() {
       }).to(SubnetworkLoader.class);
+
+      bind(new TypeLiteral<CacheLoader<URI, Optional<Firewall>>>(){
+      }).to(FirewallLoader.class);
 
       bindHttpApi(binder(), Resources.class);
    }

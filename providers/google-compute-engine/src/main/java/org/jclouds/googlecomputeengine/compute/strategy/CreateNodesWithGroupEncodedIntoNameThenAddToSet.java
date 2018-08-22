@@ -16,24 +16,15 @@
  */
 package org.jclouds.googlecomputeengine.compute.strategy;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.ImmutableList.of;
-import static org.jclouds.domain.LocationScope.ZONE;
-import static org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName.fromRegionAndName;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.Resource;
-import javax.inject.Inject;
-import javax.inject.Named;
-
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import org.jclouds.Constants;
 import org.jclouds.compute.config.CustomizationResponse;
 import org.jclouds.compute.domain.NodeMetadata;
@@ -50,26 +41,27 @@ import org.jclouds.googlecomputeengine.compute.functions.FirewallTagNamingConven
 import org.jclouds.googlecomputeengine.compute.functions.Resources;
 import org.jclouds.googlecomputeengine.compute.options.GoogleComputeEngineTemplateOptions;
 import org.jclouds.googlecomputeengine.domain.Firewall;
-import org.jclouds.googlecomputeengine.domain.Firewall.Rule;
 import org.jclouds.googlecomputeengine.domain.Network;
 import org.jclouds.googlecomputeengine.domain.Operation;
 import org.jclouds.googlecomputeengine.domain.Subnetwork;
-import org.jclouds.googlecomputeengine.features.FirewallApi;
-import org.jclouds.googlecomputeengine.options.FirewallOptions;
 import org.jclouds.logging.Logger;
 import org.jclouds.ssh.SshKeyPairGenerator;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Atomics;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
+import javax.annotation.Resource;
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.jclouds.domain.LocationScope.ZONE;
+import static org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName.fromRegionAndName;
 
 public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
       org.jclouds.compute.strategy.impl.CreateNodesWithGroupEncodedIntoNameThenAddToSet {
@@ -85,6 +77,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
    private final FirewallTagNamingConvention.Factory firewallTagNamingConvention;
    private final SshKeyPairGenerator keyGenerator;
    private final LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap;
+   private final LoadingCache<URI, Optional<Firewall>> firewallsMap;
 
    @Resource
    @Named(ComputeServiceConstants.COMPUTE_LOGGER)
@@ -99,7 +92,8 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
          CustomizeNodeAndAddToGoodMapOrPutExceptionIntoBadMap.Factory customizeNodeAndAddToGoodMapOrPutExceptionIntoBadMapFactory,
          GoogleComputeEngineApi api, Resources resources, Predicate<AtomicReference<Operation>> operationDone,
          FirewallTagNamingConvention.Factory firewallTagNamingConvention, SshKeyPairGenerator keyGenerator,
-         LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap) {
+         LoadingCache<RegionAndName, Optional<Subnetwork>> subnetworksMap,
+         LoadingCache<URI, Optional<Firewall>> firewallsMap) {
       super(addNodeWithGroupStrategy, listNodesStrategy, namingConvention, userExecutor,
             customizeNodeAndAddToGoodMapOrPutExceptionIntoBadMapFactory);
       this.api = api;
@@ -108,6 +102,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
       this.firewallTagNamingConvention = firewallTagNamingConvention;
       this.keyGenerator = keyGenerator;
       this.subnetworksMap = subnetworksMap;
+      this.firewallsMap= firewallsMap;
    }
 
    @Override
@@ -194,18 +189,23 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
       Set<String> tags = Sets.newLinkedHashSet(templateOptions.getTags());
 
-      FirewallApi firewallApi = api.firewalls();
 
       if (!templateOptions.getGroups().isEmpty()) {
-         for (String firewallName : templateOptions.getGroups()) {
-            Firewall firewall = firewallApi.get(firewallName);
-            validateFirewall(firewall, network);
-            if (!firewall.targetTags().isEmpty()) {
-               // Add tags coming from firewalls
-               tags.addAll(firewall.targetTags());
+         for (String firewallURI: templateOptions.getGroups()) {
+            Optional<Firewall> firewall = firewallsMap.getUnchecked(URI.create(firewallURI));
+            if (firewall.isPresent()) {
+               Firewall fw = firewall.get();
+               validateFirewall(fw, network);
+               if (!fw.targetTags().isEmpty()) {
+                  // Add tags coming from firewalls
+                  tags.addAll(fw.targetTags());
+               }
             }
-         }
+            }
+
       }
+
+      /**
 
       int[] inboundPorts = templateOptions.getInboundPorts();
       
@@ -233,12 +233,13 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
          tags.add(name);  // Add tags for the inbound ports firewall
       }
+       */
 
       templateOptions.tags(tags);
    }
 
    private void validateFirewall(Firewall firewall, Network network) {
-      if (firewall == null || !firewall.network().equals(network.selfLink())) {
+      if (firewall == null|| !firewall.network().equals(network.selfLink())) {
          throw new IllegalArgumentException(String.format("Can't find firewall %s in network %s.", firewall.name(), network));
       }
    }
