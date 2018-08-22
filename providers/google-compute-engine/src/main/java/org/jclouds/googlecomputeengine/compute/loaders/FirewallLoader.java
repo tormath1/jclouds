@@ -38,7 +38,7 @@ public class FirewallLoader extends CacheLoader<URI, Optional<Firewall>> {
     }
 
     @Override
-    public Optional<Firewall> load(URI key) throws Exception {
+    public Optional<Firewall> load(URI key) throws ExecutionException {
         try {
             return Optional.fromNullable(resources.firewall(key));
         } catch (Exception ex) {
