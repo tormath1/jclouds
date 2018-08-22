@@ -109,7 +109,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
       this.firewallTagNamingConvention = firewallTagNamingConvention;
       this.keyGenerator = keyGenerator;
       this.subnetworksMap = subnetworksMap;
-      this.firewallsMap= firewallsMap;
+      this.firewallsMap = firewallsMap;
    }
 
    @Override
@@ -198,7 +198,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
 
       if (!templateOptions.getGroups().isEmpty()) {
-         for (String firewallURI: templateOptions.getGroups()) {
+         for (String firewallURI : templateOptions.getGroups()) {
             Optional<Firewall> firewall = firewallsMap.getUnchecked(URI.create(firewallURI));
             if (firewall.isPresent()) {
                Firewall fw = firewall.get();
@@ -245,7 +245,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
    }
 
    private void validateFirewall(Firewall firewall, Network network) {
-      if (firewall == null|| !firewall.network().equals(network.selfLink())) {
+      if (firewall == null || !firewall.network().equals(network.selfLink())) {
          throw new IllegalArgumentException(String.format("Can't find firewall %s in network %s.", firewall.name(), network));
       }
    }
