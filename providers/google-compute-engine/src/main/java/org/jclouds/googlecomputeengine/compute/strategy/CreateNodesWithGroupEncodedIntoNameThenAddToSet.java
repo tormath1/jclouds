@@ -20,9 +20,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Atomics;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.jclouds.Constants;
@@ -41,9 +43,12 @@ import org.jclouds.googlecomputeengine.compute.functions.FirewallTagNamingConven
 import org.jclouds.googlecomputeengine.compute.functions.Resources;
 import org.jclouds.googlecomputeengine.compute.options.GoogleComputeEngineTemplateOptions;
 import org.jclouds.googlecomputeengine.domain.Firewall;
+import org.jclouds.googlecomputeengine.domain.Firewall.Rule;
 import org.jclouds.googlecomputeengine.domain.Network;
 import org.jclouds.googlecomputeengine.domain.Operation;
 import org.jclouds.googlecomputeengine.domain.Subnetwork;
+import org.jclouds.googlecomputeengine.features.FirewallApi;
+import org.jclouds.googlecomputeengine.options.FirewallOptions;
 import org.jclouds.logging.Logger;
 import org.jclouds.ssh.SshKeyPairGenerator;
 
@@ -60,6 +65,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.ImmutableList.of;
 import static org.jclouds.domain.LocationScope.ZONE;
 import static org.jclouds.googlecomputeengine.compute.domain.internal.RegionAndName.fromRegionAndName;
 
@@ -205,9 +212,9 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
       }
 
-      /**
 
       int[] inboundPorts = templateOptions.getInboundPorts();
+      FirewallApi firewallApi = api.firewalls();
       
       if (inboundPorts != null && inboundPorts.length > 0) {
          List<String> ports = simplifyPorts(inboundPorts);
@@ -233,7 +240,6 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
          tags.add(name);  // Add tags for the inbound ports firewall
       }
-       */
 
       templateOptions.tags(tags);
    }
