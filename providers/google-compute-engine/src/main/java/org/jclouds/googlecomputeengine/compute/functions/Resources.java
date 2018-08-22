@@ -27,12 +27,8 @@ import javax.ws.rs.Path;
 import java.net.URI;
 
 import org.jclouds.Fallbacks.NullOnNotFoundOr404;
-import org.jclouds.googlecomputeengine.domain.Disk;
-import org.jclouds.googlecomputeengine.domain.Image;
-import org.jclouds.googlecomputeengine.domain.Instance;
-import org.jclouds.googlecomputeengine.domain.Network;
-import org.jclouds.googlecomputeengine.domain.Operation;
-import org.jclouds.googlecomputeengine.domain.Subnetwork;
+import org.jclouds.annotations.Name;
+import org.jclouds.googlecomputeengine.domain.*;
 import org.jclouds.javax.annotation.Nullable;
 import org.jclouds.oauth.v2.filters.OAuthFilter;
 import org.jclouds.rest.annotations.EndpointParam;
@@ -96,4 +92,9 @@ public interface Resources {
    @Named("Images:get")
    @GET
    @Fallback(NullOnNotFoundOr404.class) @Nullable Image image(@EndpointParam URI selfLink);
+
+   /**   Returns a firewall by self-link or null if not found*/
+   @Named("Firewall:get")
+   @GET
+   @Fallback(NullOnNotFoundOr404.class) @Nullable Firewall firewall(@EndpointParam URI selfLink);
 }
