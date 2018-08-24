@@ -149,18 +149,30 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
    private void configureNetworking(String group, GoogleComputeEngineTemplateOptions options, Location location) {
       String networkName = null;
       Network network = null;
+      String net = null;
+      boolean isFullURI = false;
 
       if (options.getNetworks().isEmpty()) {
          networkName = DEFAULT_NETWORK_NAME;
       } else {
          Iterator<String> iterator = options.getNetworks().iterator();
-         networkName = nameFromNetworkString(iterator.next());
+         net = iterator.next();
+         if (net.startsWith("projects")) {
+            isFullURI = true;
+         }
+         networkName = nameFromNetworkString(net);
          checkArgument(!iterator.hasNext(),
                "Error: Please specify only one network/subnetwork in TemplateOptions when using GCE.");
       }
 
       String region = ZONE == location.getScope() ? location.getParent().getId() : location.getId();
-      Optional<Subnetwork> subnet = subnetworksMap.getUnchecked(fromRegionAndName(region, networkName));
+      Optional<Subnetwork> subnet;
+      if (isFullURI) {
+         subnet = Optional.fromNullable(resources.subnetwork(URI.create(net)));
+      } else {
+         subnet = subnetworksMap.getUnchecked(fromRegionAndName(region, networkName));
+      }
+
       if (subnet.isPresent()) {
          network = resources.network(subnet.get().network());
          options.networks(ImmutableSet.of(subnet.get().selfLink().toString()));
