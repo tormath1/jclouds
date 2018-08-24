@@ -143,8 +143,14 @@ public final class GoogleComputeEngineServiceAdapter
          // obtained in the CreateNodesWithGroupEncodedIntoNameThenAddToSet
          // strategy
          Optional<Subnetwork> subnet = subnetworksMap.getUnchecked(subnetRef);
-         network = subnet.get().network();
-         subnetwork = subnet.get().selfLink();
+         if (!subnet.isPresent()) {
+            // we try to get the subnet by the full URI
+            subnet = Optional.fromNullable(resources.subnetwork(network));
+         }
+         if (subnet.isPresent()) {
+            network = subnet.get().network();
+            subnetwork = subnet.get().selfLink();
+         }
       }
 
       Scheduling scheduling = getScheduling(options);
