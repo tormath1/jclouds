@@ -167,11 +167,8 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
 
       String region = ZONE == location.getScope() ? location.getParent().getId() : location.getId();
       Optional<Subnetwork> subnet;
-      if (isFullURI) {
-         subnet = Optional.fromNullable(resources.subnetwork(URI.create(net)));
-      } else {
-         subnet = subnetworksMap.getUnchecked(fromRegionAndName(region, networkName));
-      }
+
+      subnet = isFullURI ? Optional.fromNullable(resources.subnetwork(URI.create(net))) : subnetworksMap.getUnchecked(fromRegionAndName(region, networkName));
 
       if (subnet.isPresent()) {
          network = resources.network(subnet.get().network());
