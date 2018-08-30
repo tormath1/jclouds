@@ -157,9 +157,7 @@ public final class CreateNodesWithGroupEncodedIntoNameThenAddToSet extends
       } else {
          Iterator<String> iterator = options.getNetworks().iterator();
          net = iterator.next();
-         if (net.startsWith("projects")) {
-            isFullURI = true;
-         }
+         isFullURI = net.startsWith("projects");
          networkName = nameFromNetworkString(net);
          checkArgument(!iterator.hasNext(),
                "Error: Please specify only one network/subnetwork in TemplateOptions when using GCE.");
