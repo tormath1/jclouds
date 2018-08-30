@@ -29,25 +29,24 @@ import java.util.concurrent.ExecutionException;
 @Singleton
 public class FirewallLoader extends CacheLoader<URI, Optional<Firewall>> {
 
-    private final Resources resources;
+   private final Resources resources;
 
-    @Inject
-    FirewallLoader(Resources resources) {
-        this.resources = resources;
-    }
+   @Inject
+   FirewallLoader(Resources resources) {
+      this.resources = resources;
+   }
 
-    @Override
-    public Optional<Firewall> load(URI key) throws ExecutionException {
-        try {
-            return Optional.fromNullable(resources.firewall(key));
-        } catch (Exception ex) {
-            throw new ExecutionException(message(key, ex), ex);
-        }
-    }
+   @Override
+   public Optional<Firewall> load(URI key) throws ExecutionException {
+      try {
+         return Optional.fromNullable(resources.firewall(key));
+      } catch (Exception ex) {
+         throw new ExecutionException(message(key, ex), ex);
+      }
+   }
 
-    public static String message(URI key, Exception ex) {
-        return String.format("could not find firewall %s: %s", key.toString(), ex.getMessage());
-    }
-
+   public static String message(URI key, Exception ex) {
+      return String.format("could not find firewall %s: %s", key.toString(), ex.getMessage());
+   }
 
 }
