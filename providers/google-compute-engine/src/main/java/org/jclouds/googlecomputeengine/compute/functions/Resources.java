@@ -98,7 +98,7 @@ public interface Resources {
    @GET
    @Fallback(NullOnNotFoundOr404.class) @Nullable Image image(@EndpointParam URI selfLink);
 
-   /**   Returns a firewall by self-link or null if not found*/
+   /** Returns a firewall by self-link or null if not found. */
    @Named("Firewall:get")
    @GET
    @Fallback(NullOnNotFoundOr404.class) @Nullable Firewall firewall(@EndpointParam URI selfLink);
