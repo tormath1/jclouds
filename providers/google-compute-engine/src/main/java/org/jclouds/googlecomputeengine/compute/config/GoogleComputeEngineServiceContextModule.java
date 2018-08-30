@@ -230,7 +230,7 @@ public final class GoogleComputeEngineServiceContextModule
 @Singleton
 protected LoadingCache<URI, Optional<Firewall>> firewallsMap(
         CacheLoader<URI, Optional<Firewall>> in) {
-    return CacheBuilder.newBuilder().build(in);
+      return CacheBuilder.newBuilder().build(in);
 }
 
    private static final Map<Instance.Status, NodeMetadata.Status> toPortableNodeStatus =
